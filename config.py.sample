@@ -1,0 +1,12 @@
+from typing import List, Set
+from nonebot.default_config import *
+
+SUPERUSERS = { }
+COMMAND_START = { '' }
+NICKNAME = { '' }
+DEBUG = False
+
+# SELF CHECK
+MAX_PERFORMANCE_PERCENT: List[int] = [ 70, 70, 70 ] # CPU MEM DISK 报警阈值
+PROCESS_NAME_LIST: Set[str] = { } # 待检测进程
+
