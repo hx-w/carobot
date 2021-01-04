@@ -1,6 +1,7 @@
 import requests
 import re
 import base64
+import ujson
 
 class JWC_Spider():
     def __init__(self, student_id='', password='', state=0):
@@ -88,4 +89,33 @@ class JWC_Spider():
             return (False, '账号/密码/验证码错误，验证失败')
         else:
             return (True, '验证成功')
+    
+    def get_now_course(self, flag=0): # 0=>all 1=>today 2=>tomorrow
+        url = 'http://zhjw.scu.edu.cn/student/courseSelect/thisSemesterCurriculum/ajaxStudentSchedule/curr/callback'
+        self.headers['Accept'] = '*/*'
+        self.headers['Referer'] = 'http://zhjw.scu.edu.cn/student/courseSelect/thisSemesterCurriculum/index'
+        self.headers['X-Requested-With'] = 'XMLHttpRequest'
+        response = self.session.get(url, headers=self.headers)
+        course_json = ujson.loads(response.content.decode('utf-8'))
+        retinfo = {
+            "totalUnits": 0,
+            "courseNum": 0,
+            "courseList": [] # { "courseName": xxx, "teacher": xxx, "type": xxx, "time_and_locate": []}
+        }
+        retinfo["totalUnits"] = course_json["dateList"][0]["totalUnits"]
+        retinfo["courseNum"] = len(course_json["dateList"][0]["selectCourseList"])
+        for idx in range(retinfo["courseNum"]):
+            tcourse = course_json["dateList"][0]["selectCourseList"][idx]
+            oneCourse = {
+                "courseName": tcourse["courseName"],
+                "teacher": tcourse["attendClassTeacher"],
+                "type": tcourse["coursePropertiesName"],
+                "time_and_locate": []
+            }
+            for timePlace in tcourse["timeAndPlaceList"]:
+                locate = timePlace["campusName"] + "-" + timePlace["teachingBuildingName"] + "-" + timePlace["classroomName"]
+                classtime = "{} | 星期{} | 第{}到{}节".format(timePlace["weekDescription"], timePlace["classDay"], timePlace["classSessions"], timePlace["classSessions"] + timePlace["continuingSession"] - 1)
+                oneCourse["time_and_locate"].append({"time": classtime, "locate": locate})
+            retinfo["courseList"].append(oneCourse)
+        return retinfo
 

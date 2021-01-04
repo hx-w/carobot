@@ -152,3 +152,32 @@ async def handle_captcha(session: aiocqhttp.Event):
         spider.state = 0
     spiders[str(session['user_id'])] = spider
 
+@on_command('courseTable', aliases=('课表'))
+async def command_now_course(session: CommandSession, permission=PRIVATE_FRIEND):
+    qqid = str(session.event['user_id'])
+    spider = get_spider(qqid)
+    if spider.state != 2:
+        await carobot.send_private_msg(user_id=qqid, message="未绑定账号，输入 \"bind/绑定\" 进行绑定")
+        return
+   # if spider.need_reverify():
+   #     await carobot.send_private_msg(user_id=qqid, message="账号session已过期，请输入 \"check/验证\" 进行验证")
+   #     return
+    courseList = spider.get_now_course()
+    head_msg = f"""
+你这学期一共有{courseList['courseNum']}门课
+本学期学分：{courseList['totalUnits']}
+------------------------------
+""".strip()
+    body_msg = ''
+    for course in courseList['courseList']:
+        time_loc_msg = ''
+        for tandl in course['time_and_locate']:
+            time_loc_msg += f'> 时间：{tandl["time"]}\n> 地点：{tandl["locate"]}\n'
+        course_msg = f'''
+课程名：{course["courseName"]}
+教师：{course["teacher"]}
+类型：{course["type"]}
+时间地点安排如下：
+        '''.strip() + "\n"  + time_loc_msg
+        body_msg += "\n" + course_msg
+    await carobot.send_private_msg(user_id=qqid, message=head_msg + body_msg)
