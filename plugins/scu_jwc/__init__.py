@@ -21,7 +21,7 @@ def startup():
 
 @on_command('menu', aliases=('菜单', '帮助'), permission=PRIVATE_FRIEND)
 async def _(session: CommandSession):
-    message = "==={name}===\n作者：{author}\n版本：{version}\n\n{usage}".format(
+    message = "===== {name} =====\n作者：{author}\n版本：{version}\n\n{usage}".format(
         name=helpinfo.NAME, author=helpinfo.AUTHOR, version=helpinfo.VERSION, usage=helpinfo.USAGE
     )
     await carobot.send_private_msg(user_id=session.event['user_id'], message=message)
@@ -80,7 +80,7 @@ async def command_bind(session: CommandSession, permission=PRIVATE_FRIEND):
 async def handle_captcha(session: aiocqhttp.Event):
     spider = spiders.get(session['user_id'], None)
     if spider is None or spider.state != 1 or len(session['message']) > 1 or session['message'][0]['type'] != 'text': return
-    if session['message'][0]['data']['text'].strip() in ['刷新', 'refresh']: return
+    if session['message'][0]['data']['text'].strip() in ['刷新', 'refresh', '菜单', 'menu', '绑定', 'bind']: return
     stripped_text = session['message'][0]['data']['text'].strip()
     status, msg = spider.set_captcha(stripped_text)
     if status:

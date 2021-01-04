@@ -10,3 +10,9 @@ DEBUG = False
 MAX_PERFORMANCE_PERCENT: List[int] = [ 70, 70, 70 ] # CPU MEM DISK 报警阈值
 PROCESS_NAME_LIST: Set[str] = { } # 待检测进程
 
+# DATABASE INFO  (mysql)
+DB_USER = '用户名'
+DB_NAME = '数据库名'
+DB_PASSWORD = '密码'
+DB_HOST = 'localhost'
+DB_TABLE_NAME = '表单名'
