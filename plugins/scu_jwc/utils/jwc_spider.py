@@ -64,11 +64,11 @@ class JWC_Spider():
         captcha_req = self.session.get(url)
         if captcha_req.status_code != requests.codes.ok:
             return (False, '验证码请求失败')
-        self.state = 1
+        if self.state != 3:
+            self.state = 1
         return self.__b64Img(captcha_req.content)
     
     
-
     def set_captcha(self, str_captcha: str): # bool, str
         # 模拟登陆
         url = 'http://zhjw.scu.edu.cn/j_spring_security_check'
@@ -77,6 +77,9 @@ class JWC_Spider():
             'j_password': self.password,
             'j_captcha': str_captcha
         }
+        self.headers['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'
+        self.headers['Referer'] = 'http://zhjw.scu.edu.cn/login'
+        self.headers['X-Requested-With'] = ''
         response = self.session.post(url, data=data, headers=self.headers)
         if response.status_code != requests.codes.ok:
             return (False, 'SCU教务处访问失败')
@@ -84,6 +87,5 @@ class JWC_Spider():
         if isError:
             return (False, '账号/密码/验证码错误，验证失败')
         else:
-
             return (True, '验证成功')
 

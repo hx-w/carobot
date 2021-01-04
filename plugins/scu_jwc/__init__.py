@@ -8,6 +8,18 @@ carobot = get_bot()
 info_manager = None
 spiders = {}
 
+def get_spider(qqid: str):
+    global spiders
+    spider = spiders.get(qqid, None)
+    if spider is None:
+        status, queryinfo = info_manager.query_qqid(qqid)
+        if queryinfo is None:
+            spider = jwc_spider.JWC_Spider(state=0)
+        else:
+            spider = jwc_spider.JWC_Spider(student_id=queryinfo[0], password=queryinfo[1], state=2)
+        spiders[qqid] = spider
+    return spider
+
 @on_startup
 def startup():
     global info_manager
@@ -28,9 +40,9 @@ async def _(session: CommandSession):
 
 @on_command('refresh_captcha', aliases=('refresh', '刷新'))
 async def command_refresh_captcha(session: CommandSession, permission=PRIVATE_FRIEND):
-    qqid = session.event['user_id']
-    spider = spiders.get(qqid, None)
-    if spider is None or spider.state != 1: return
+    qqid = str(session.event['user_id'])
+    spider = get_spider(qqid)
+    if spider is None or spider.state not in [1, 3]: return
     status, b64_img = spider.get_captcha(spider.student_id, spider.password)
     if not status:
         await carobot.send_private_msg(user_id=qqid, message='error: %s' % b64_img)
@@ -39,19 +51,49 @@ async def command_refresh_captcha(session: CommandSession, permission=PRIVATE_FR
     await carobot.send_private_msg(user_id=session.event['user_id'], message=MessageSegment({"type": "image", "data": {"file": b64_img}}))
     spiders[qqid] = spider
 
+@on_command('check', aliases=('验证'))
+async def command_check(session: CommandSession, permission=PRIVATE_FRIEND):
+    global spiders
+    qqid = str(session.event['user_id'])
+    spider = get_spider(qqid)
+    if spider.state != 2: 
+        await carobot.send_private_msg(user_id=qqid, message='请先绑定scu账号\n输入 "绑定" 进行绑定操作')
+        return
+    if spider.need_reverify():
+        spider.state = 3
+        status, b64_img = spider.get_captcha(spider.student_id, spider.password)
+        if not status:
+            await carobot.send_private_msg(user_id=qqid, message='error: %s' % b64_img)
+            return
+        await carobot.send_private_msg(user_id=qqid, message='请输入验证码：(输入 "刷新"或"refresh" 更换验证码)')
+        await carobot.send_private_msg(user_id=session.event['user_id'], message=MessageSegment({"type": "image", "data": {"file": b64_img}}))
+    else:
+        status, name = spider.get_name()
+        await carobot.send_private_msg(user_id=session['user_id'], message="验证成功！\n姓名：%s" % name)
+    spiders[qqid] = spider
+        
+
+@on_command('unbind', aliases=('解绑'))
+async def command_unbind(session: CommandSession, permission=PRIVATE_FRIEND):
+    qqid = str(session.event['user_id'])
+    status, queryinfo =info_manager.query_qqid(qqid)
+    if queryinfo is None:
+        await carobot.send_private_msg(user_id=qqid, message='你当前并没有绑定scu账号，操作取消')
+        return
+    username = session.get('username', prompt='请输入已绑定的scu学号，用来确认解绑操作').strip()
+    if username != queryinfo[0]:
+        await carobot.send_private_msg(user_id=qqid, message='输入的学号与已绑定的账号不相同，操作取消')
+        return
+    info_manager.delete_qqid(qqid)
+    try: 
+        del spiders[qqid]
+    except: pass
+    await carobot.send_private_msg(user_id=qqid, message='解绑成功！')
+
 @on_command('bind', aliases=('绑定'))
 async def command_bind(session: CommandSession, permission=PRIVATE_FRIEND):
-    qqid = session.event['user_id']
-    spider = spiders.get(qqid, None)
-    if spider is None:
-        status, queryinfo = info_manager.query_qqid(qqid)
-        if not status:
-            await carobot.send_private_msg(user_id=qqid, message='error：%s' % queryinfo)
-            return
-        if queryinfo is None:
-            spider = jwc_spider.JWC_Spider()
-        else:
-            spider = jwc_spider.JWC_Spider(student_id=queryinfo[0], password=queryinfo[1], state=2)
+    qqid = str(session.event['user_id'])
+    spider = get_spider(qqid)
 
     if spider.state == 1: return
     if spider.state == 2:
@@ -68,6 +110,7 @@ async def command_bind(session: CommandSession, permission=PRIVATE_FRIEND):
     await carobot.send_private_msg(user_id=qqid, message='密码已加密, 正在验证账户信息')
     
     #### 拿验证码
+    spider.state = 1
     status, b64_img = spider.get_captcha(username, password)
     if not status:
         await carobot.send_private_msg(user_id=qqid, message='error: %s' % b64_img)
@@ -78,12 +121,13 @@ async def command_bind(session: CommandSession, permission=PRIVATE_FRIEND):
 
 @carobot.on_message('private.friend')
 async def handle_captcha(session: aiocqhttp.Event):
-    spider = spiders.get(session['user_id'], None)
-    if spider is None or spider.state != 1 or len(session['message']) > 1 or session['message'][0]['type'] != 'text': return
-    if session['message'][0]['data']['text'].strip() in ['刷新', 'refresh', '菜单', 'menu', '绑定', 'bind']: return
+    global spiders
+    spider = spiders.get(str(session['user_id']), None)
+    if spider is None or spider.state not in [1, 3] or len(session['message']) > 1 or session['message'][0]['type'] != 'text': return
     stripped_text = session['message'][0]['data']['text'].strip()
+    if len(stripped_text) != 4 or stripped_text in ['menu', 'bind']: return
     status, msg = spider.set_captcha(stripped_text)
-    if status:
+    if status and spider.state == 1:
         info_manager.insert(student_id=spider.student_id, password=spider.password, qq_id=session['user_id'])
         status, name = spider.get_name()
         if not status:
@@ -95,9 +139,16 @@ async def handle_captcha(session: aiocqhttp.Event):
             return
         await carobot.send_private_msg(user_id=session['user_id'], message="验证成功！\n姓名：%s" % name)
         await carobot.send_private_msg(user_id=session['user_id'], message=MessageSegment({"type": "image", "data": {"file": b64_img}}))
-        return
-
-    spider.state = 2 if status else 0
-    await carobot.send_private_msg(user_id=session['user_id'], message="error：%s" % msg)
-    spiders[session['user_id']] = spider
+        spider.state = 2
+    if status and spider.state == 3:
+        status, name = spider.get_name()
+        await carobot.send_private_msg(user_id=session['user_id'], message="验证成功！\n姓名：%s" % name)
+        spider.state = 2
+    elif status == False and spider.state == 3:
+        await carobot.send_private_msg(user_id=session['user_id'], message=msg)
+        spider.state = 2
+    else:
+        await carobot.send_private_msg(user_id=session['user_id'], message=msg)
+        spider.state = 0
+    spiders[str(session['user_id'])] = spider
 
