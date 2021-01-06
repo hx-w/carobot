@@ -159,9 +159,9 @@ async def command_now_course(session: CommandSession, permission=PRIVATE_FRIEND)
     if spider.state != 2:
         await carobot.send_private_msg(user_id=qqid, message="未绑定账号，输入 \"bind/绑定\" 进行绑定")
         return
-   # if spider.need_reverify():
-   #     await carobot.send_private_msg(user_id=qqid, message="账号session已过期，请输入 \"check/验证\" 进行验证")
-   #     return
+    if spider.need_reverify():
+        await carobot.send_private_msg(user_id=qqid, message="账号session已过期，请输入 \"验证\" 进行验证")
+        return
     courseList = spider.get_now_course()
     head_msg = f"""
 你这学期一共有{courseList['courseNum']}门课

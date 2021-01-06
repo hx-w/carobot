@@ -30,13 +30,13 @@ class JWC_Spider():
     
     def need_reverify(self) -> bool:
         if self.state != 2: return False
-        url = 'http://zhjw.scu.edu.cn/student/courseSelect/thisSemesterCurriculum/ajaxStudentSchedule/curr/callback'
-        self.headers['Accept'] = '*/*'
-        self.headers['Referer'] = 'http://zhjw.scu.edu.cn/student/courseSelect/thisSemesterCurriculum/index'
-        self.headers['X-Requested-With'] = 'XMLHttpRequest'
+        url = 'http://zhjw.scu.edu.cn/'
+        self.headers["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+        self.headers["Referer"] = "http://zhjw.scu.edu.cn/student/personalManagement/personalApplication/curriculumReplacement/index"
+        self.headers['X-Requested-With'] = ''
         response = self.session.get(url, headers=self.headers)
         if response.status_code != requests.codes.ok: return True
-        return re.findall(r'登录系统', response.content.decode('utf-8')) == []
+        return re.search(r"欢迎您", response.content.decode("utf-8")) is None
     
     def get_name(self): # bool, str
         url = 'http://zhjw.scu.edu.cn/student/rollManagement/rollInfo/index'
@@ -50,7 +50,7 @@ class JWC_Spider():
         return (True, name)
 
     def get_headPic(self): # bool, base64(str)
-        url = 'http://zhjw.scu.edu.cn/main/queryStudent/img?715.0'
+        url = 'http://zhjw.scu.edu.cn/main/queryStudent/img?'
         self.headers['Accept'] = 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8'
         self.headers['Referer'] = 'http://zhjw.scu.edu.cn/student/courseSelect/thisSemesterCurriculum/index'
         stdPic_req = self.session.get(url, headers=self.headers)
