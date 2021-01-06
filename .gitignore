@@ -1,2 +1,5 @@
 __pycache__/
 config.py
+group_.py
+weather_.py
+selfcheck_/
