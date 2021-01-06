@@ -140,7 +140,7 @@ async def handle_captcha(session: aiocqhttp.Event):
         await carobot.send_private_msg(user_id=session['user_id'], message="验证成功！\n姓名：%s" % name)
         await carobot.send_private_msg(user_id=session['user_id'], message=MessageSegment({"type": "image", "data": {"file": b64_img}}))
         spider.state = 2
-    if status and spider.state == 3:
+    elif status and spider.state == 3:
         status, name = spider.get_name()
         await carobot.send_private_msg(user_id=session['user_id'], message="验证成功！\n姓名：%s" % name)
         spider.state = 2
@@ -177,7 +177,6 @@ async def command_now_course(session: CommandSession, permission=PRIVATE_FRIEND)
 课程名：{course["courseName"]}
 教师：{course["teacher"]}
 类型：{course["type"]}
-时间地点安排如下：
         '''.strip() + "\n"  + time_loc_msg
         body_msg += "\n" + course_msg
     await carobot.send_private_msg(user_id=qqid, message=head_msg + body_msg)

@@ -76,7 +76,8 @@ class JWC_Spider():
         data = {
             'j_username': self.student_id,
             'j_password': self.password,
-            'j_captcha': str_captcha
+            'j_captcha': str_captcha,
+            '_spring_security_remember_me': 'on'
         }
         self.headers['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'
         self.headers['Referer'] = 'http://zhjw.scu.edu.cn/login'
