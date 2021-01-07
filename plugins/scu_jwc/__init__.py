@@ -69,7 +69,7 @@ async def command_check(session: CommandSession, permission=PRIVATE_FRIEND):
         await carobot.send_private_msg(user_id=session.event['user_id'], message=MessageSegment({"type": "image", "data": {"file": b64_img}}))
     else:
         status, name = spider.get_name()
-        await carobot.send_private_msg(user_id=session['user_id'], message="验证成功！\n姓名：%s" % name)
+        await carobot.send_private_msg(user_id=session.event['user_id'], message="验证成功！\n姓名：%s" % name)
     spiders[qqid] = spider
         
 
